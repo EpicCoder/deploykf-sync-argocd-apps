@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: deploykf-sync-argocd-apps
+  namespace: argocd
+spec:
+  schedule: "*/15 * * * *"
+  successfulJobsHistoryLimit: 1
+  concurrencyPolicy: "Forbid"
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: deploykf-sync-argocd-apps
+            image: ghcr.io/epiccoder/deploykf-sync-argocd-apps:latest
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: ARGOCD_SERVER_URL
+              value: "argocd-server.argocd.svc.cluster.local:443"
+            envFrom:
+            - secretRef:
+                name: deploykf-sync-access
