@@ -19,7 +19,7 @@ spec:
             imagePullPolicy: IfNotPresent
             env:
             - name: ARGOCD_SERVER_URL
-              value: "argocd-server.argocd.svc.cluster.local:443"
+              value: "argocd-server.argocd.svc.cluster.local"
             envFrom:
             - secretRef:
                 name: deploykf-sync-access

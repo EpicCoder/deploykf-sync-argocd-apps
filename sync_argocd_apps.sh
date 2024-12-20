@@ -19,13 +19,11 @@ ARGOCD_APP_NAME_PREFIX="${ARGOCD_APP_NAME_PREFIX:-}"
 ARGOCD_NAMESPACE="${ARGOCD_NAMESPACE:-argocd}"
 
 # the argocd server URL
-#  - If empty, port-forwarding will be used to connect to the argocd server.
 ARGOCD_SERVER_URL="${ARGOCD_SERVER_URL:-}"
+ARGOCD_USE_TLS="${ARGOCD_USE_TLS:-false}"
 
 # credentials for argocd
-#  - If password is empty, and username is "admin", the 'argocd-initial-admin-secret' will be read from the cluster.
-#    This will NOT work if you have changed the ArgoCD admin password.
-ARGOCD_USERNAME="${ARGOCD_USERNAME:-admin}"
+ARGOCD_USERNAME="${ARGOCD_USERNAME:-}"
 ARGOCD_PASSWORD="${ARGOCD_PASSWORD:-}"
 
 # how to handle resources that require PRUNING (deletion)
@@ -118,10 +116,17 @@ function argocd_login() {
   local _argocd_namespace="$2"
   local _argocd_username="$3"
   local _argocd_password="$4"
+  local _argocd_use_tls="$5"
 
-  # if "admin" is the username and no password is provided, get the password from the cluster
-  if [[  -z "$_argocd_username" || -z "$_argocd_password" ]]; then
+  # Check for empty username or password
+  if [[ -z "$_argocd_username" || -z "$_argocd_password" ]]; then
     echo ">>> ERROR: empty username or password"
+    exit 1
+  fi
+
+  # if the server URL is not provided
+  if [[ -z "$_argocd_server_url" ]]; then
+    echo ">>> ERROR: Nn ArgoCD server URL provided"
     exit 1
   fi
 
@@ -130,17 +135,14 @@ function argocd_login() {
   echo_blue "=========================================================================================="
   echo_blue "Authenticating with ArgoCD..."
   echo_blue "------------------------------------------------------------------------------------------"
-  echo_blue "Server: ${_argocd_server_url:-<port-forward>}"
+  echo_blue "Server: '$_argocd_server_url'"
   echo_blue "Namespace: '$_argocd_namespace'"
   echo_blue "Username: '$_argocd_username'"
-  echo_blue "Password: '**********'"
   echo_blue "=========================================================================================="
-  if [[ -n "$_argocd_server_url" ]]; then
-    argocd login "$_argocd_server_url" --username "$_argocd_username" --password "$_argocd_password" --insecure --skip-test-tls
+  if [[ "$_argocd_use_tls" == "true" ]]; then
+    argocd login "$_argocd_server_url" --username "$_argocd_username" --password "$_argocd_password" --insecure
   else
-    # NOTE: we must export ARGOCD_OPTS for all the argocd commands to see it
-    export ARGOCD_OPTS="--port-forward --port-forward-namespace '$_argocd_namespace'"
-    argocd login --username "$_argocd_username" --password "$_argocd_password"
+    argocd login "$_argocd_server_url" --username "$_argocd_username" --password "$_argocd_password" --plaintext 
   fi
   echo_green ">>> DONE"
 }
@@ -604,7 +606,7 @@ function ask_prune_mode() {
 ARGOCD_APP_SELECTOR="app.kubernetes.io/part-of=${ARGOCD_APP_NAME_PREFIX}deploykf"
 
 # authenticate to argocd
-argocd_login "$ARGOCD_SERVER_URL" "$ARGOCD_NAMESPACE" "$ARGOCD_USERNAME" "$ARGOCD_PASSWORD"
+argocd_login "$ARGOCD_SERVER_URL" "$ARGOCD_NAMESPACE" "$ARGOCD_USERNAME" "$ARGOCD_PASSWORD" "$ARGOCD_USE_TLS"
 
 # ask the user to set a prune mode
 if [[ "$ARGOCD_PRUNE_MODE" == "ask" ]]; then
