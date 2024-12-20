@@ -136,7 +136,7 @@ function argocd_login() {
   echo_blue "Password: '**********'"
   echo_blue "=========================================================================================="
   if [[ -n "$_argocd_server_url" ]]; then
-    argocd login "$_argocd_server_url" --username "$_argocd_username" --password "$_argocd_password" --insecure
+    argocd login "$_argocd_server_url" --username "$_argocd_username" --password "$_argocd_password" --insecure --skip-test-tls
   else
     # NOTE: we must export ARGOCD_OPTS for all the argocd commands to see it
     export ARGOCD_OPTS="--port-forward --port-forward-namespace '$_argocd_namespace'"
